@@ -1,6 +1,5 @@
 #include "MongoManager.hpp"
 #include <bsoncxx/json.hpp>
-#include <
 
 namespace custom_bson = bsoncxx::builder::stream;
 

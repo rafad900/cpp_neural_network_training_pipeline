@@ -71,7 +71,7 @@ int main() {
     trainer->set_model(model);
 
     trainer->train_model();
-    trainer->test_model();
+    // trainer->test_model();
 
     return 0;
 }

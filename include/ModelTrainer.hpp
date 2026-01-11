@@ -26,7 +26,7 @@ protected:
 
 class ModelTrainer {
 private:
-    int batch_size = 16;
+    int batch_size = 128;
     int num_classes = 10;
     double learning_rate = 0.00025;
     int num_epochs = 50;

@@ -42,7 +42,7 @@ std::string get_current_time_str() {
 }
 
 ModelTrainer::ModelTrainer() {
-    std::cout << "Intializing Model Trainer\n";
+    std::cout << "Initializing Model Trainer\n";
     print_current_parameters();
     check_for_gpu();
     look_for_pt_file(pretrained_path, pretrained_file);
@@ -85,9 +85,13 @@ void ModelTrainer::train_model() {
     model_->to(device_);
     torch::optim::Adam optimizer = torch::optim::Adam(model_->parameters(), torch::optim::AdamOptions(learning_rate));
 
-    CIFAR10 all_data = CIFAR10("/home/rafad900/Data/cifar-10-batches-bin/train");
+    CIFAR10 all_data = CIFAR10("/Users/rafad900/Data/cifar-10-batches-bin/train");
+    //auto tiny_images = all_data.get_images().slice(0, 0, 1000);
+    //auto tiny_labels = all_data.get_labels().slice(0, 0, 1000);
+    //auto train_dataset  = CustomDataset(tiny_images, tiny_labels).map(torch::data::transforms::Stack<>());
     auto train_dataset  = CustomDataset(all_data.get_images(), all_data.get_labels()).map(torch::data::transforms::Stack<>());
-    auto train_loader   = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(std::move(train_dataset), batch_size);
+    auto loader_options = torch::data::DataLoaderOptions().batch_size(batch_size).workers(8);
+    auto train_loader   = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(std::move(train_dataset), loader_options);
     std::cout << "Data loader created with size: " << train_dataset.size().value() << std::endl;
     
     for (int i = 0; i < num_epochs; i++) {
@@ -95,17 +99,14 @@ void ModelTrainer::train_model() {
         auto gpu_correct_total = torch::zeros({}, torch::TensorOptions().device(device_).dtype(torch::kInt64));
         int64_t total_samples = 0;
 
-        for (auto& batch : *train_loader) {       
-
+        for (auto& batch : *train_loader) {
             auto data   = batch.data.to(device_);
             auto target = batch.target.to(device_);
-            
             optimizer.zero_grad();
 
             // Forward pass
             auto output = model_->forward(data);
             auto loss   = torch::nn::functional::cross_entropy(output, target);
-            
             // Backward pass
             loss.backward();
             optimizer.step();
@@ -207,7 +208,12 @@ void ModelTrainer::check_for_gpu() {
     if (torch::cuda::is_available()) {
         std::cout << "CUDA is available! Training on GPU." << std::endl;
         device_ = torch::Device(torch::kCUDA);
-    } else {
+    }
+    else if (torch::mps::is_available()) {
+        std::cout << "MPS is available! Training on Apple Silicon GPU." << std::endl;
+        device_ = torch::Device(torch::kMPS);
+    }
+    else {
         std::cout << "CUDA not found. Falling back to CPU." << std::endl;
     }
 }
